@@ -113,12 +113,14 @@ export const id = 'github';
 
 let config: LocalRepoConfig;
 let platformConfig: PlatformConfig;
+let githubAppInstallationToken: string | undefined;
 
 // GitHub's max is 60k but in the hosted app we've observed that content-length is ~1k longer
 const GitHubMaxPrBodyLen = 58000;
 
 export function resetConfigs(): void {
   config = {} as never;
+  githubAppInstallationToken = undefined;
   platformConfig = {
     hostType: 'github',
     endpoint: 'https://api.github.com/',
@@ -171,6 +173,7 @@ export async function initPlatform({
   }
   token = token.replace(regEx(/^ghs_/), 'x-access-token:ghs_');
   platformConfig.isGHApp = token.startsWith('x-access-token:');
+  githubAppInstallationToken = platformConfig.isGHApp ? token : undefined;
 
   if (endpoint) {
     if (!isHttpUrl(endpoint)) {
@@ -294,11 +297,13 @@ export async function initPlatform({
 async function fetchRepositories(): Promise<GhRestRepo[]> {
   try {
     if (isGHApp()) {
+      // This endpoint only accepts the App installation token, so bypass host rules.
       const res = await githubApi.getJsonUnchecked<{
         repositories: GhRestRepo[];
       }>(`installation/repositories?per_page=100`, {
         paginationField: 'repositories',
         paginate: 'all',
+        token: githubAppInstallationToken,
       });
       return res.body.repositories;
     }

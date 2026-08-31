@@ -699,7 +699,11 @@ describe('modules/platform/github/index', () => {
     });
 
     it('should return an array of repos when using Github App endpoint', async () => {
-      //Use Github App token
+      hostRules.add({
+        matchHost: githubApiHost,
+        readOnly: true,
+        token: 'read-only-token',
+      });
       await github.initPlatform({
         endpoint: githubApiHost,
         username: 'renovate-bot',
@@ -707,7 +711,11 @@ describe('modules/platform/github/index', () => {
         token: 'x-access-token:123test',
       });
       httpMock
-        .scope(githubApiHost)
+        .scope(githubApiHost, {
+          reqheaders: {
+            authorization: 'Bearer 123test',
+          },
+        })
         .get('/installation/repositories?per_page=100')
         .reply(200, {
           repositories: [

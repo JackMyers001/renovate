@@ -95,6 +95,27 @@ describe('util/http/github', () => {
       expect(req.headers.authorization).toBe('token def');
     });
 
+    it('prefers a read-only token added before the platform token', async () => {
+      const gheCloudApiHost = 'https://api.octocorp.ghe.com';
+      setBaseUrl(gheCloudApiHost);
+      hostRules.add({
+        matchHost: 'octocorp.ghe.com',
+        readOnly: true,
+        token: 'read-only-token',
+      });
+      hostRules.add({
+        hostType: 'github',
+        matchHost: 'api.octocorp.ghe.com',
+        token: 'platform-token',
+      });
+      httpMock.scope(gheCloudApiHost).get('/some-url').reply(200);
+
+      await githubApi.get('/some-url');
+
+      const [req] = httpMock.getTrace();
+      expect(req.headers.authorization).toBe('token read-only-token');
+    });
+
     it('paginates', async () => {
       const url = '/some-url?per_page=2';
       httpMock

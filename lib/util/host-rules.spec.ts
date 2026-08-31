@@ -425,6 +425,37 @@ describe('util/host-rules', () => {
         }),
       ).toEqual({ token: 'bbb' });
     });
+
+    it('prefers readOnly rules regardless of registration order', () => {
+      const readOnlyRule: HostRule = {
+        matchHost: 'https://api.github.com',
+        token: 'read-only-token',
+        readOnly: true,
+      };
+      const platformRule: HostRule = {
+        matchHost: 'https://api.github.com',
+        token: 'platform-token',
+        hostType: 'github',
+      };
+      const search = {
+        hostType: 'github',
+        url: 'https://api.github.com/repos/foo/bar/contents/renovate.json',
+        readOnly: true,
+      };
+
+      for (const rules of [
+        [readOnlyRule, platformRule],
+        [platformRule, readOnlyRule],
+      ]) {
+        clear();
+
+        for (const rule of rules) {
+          add(rule);
+        }
+
+        expect(find(search)).toEqual({ token: 'read-only-token' });
+      }
+    });
   });
 
   describe('hosts()', () => {

@@ -127,7 +127,13 @@ function fromShorterToLongerMatchHost(a: HostRule, b: HostRule): number {
 }
 
 function hostRuleRank({ hostType, matchHost, readOnly }: HostRule): number {
-  if ((hostType || readOnly) && matchHost) {
+  // A matching readOnly rule wins over hostType rules for read-only requests,
+  // see hostRules.readOnly docs.
+  if (readOnly && matchHost) {
+    return 4;
+  }
+
+  if (hostType && matchHost) {
     return 3;
   }
 
